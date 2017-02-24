@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>DispOSD</title>
+	<style type="text/css">
+		* {
+			box-sizing: border-box;
+		}
+		html, body{
+			height: 100%;
+			width: 100%;
+		}
+		body {
+			font-family: sans-serif;
+			margin: 0;
+			padding: 1.8vw 3.6vw;
+			overflow: hidden;
+		}
+		.wrap {
+			display: -webkit-flex;
+			display: flex;
+			-webkit-justify-content: flex-start;
+			justify-content: flex-start;
+			-webkit-align-items: center;
+			align-items: center;
+			height: 100%;
+		}
+		.info {
+			color: #EFEFEF;
+			font-size: 4vw;
+			-webkit-flex: 0 1 auto;
+			flex: 0 1 auto;
+		}
+		.info__title {
+			font-weight: bold;
+		}
+		.info__artist, .info__albumName {
+			font-size: 3vw;
+		}
+		.picture {
+			float: left;
+			margin-right: 1.8vw;
+			height: 20vw;
+			width: 20vw;
+			background-size: auto;
+			background: url('load.svg') no-repeat 50%;
+			-webkit-flex: 0 0 auto;
+			flex: 0 0 auto;
+		}
+	</style>
+</head>
+<body>
+	<div class="wrap">
+		<div class="picture"></div>
+		<div class="info">
+			<div class="info__title"></div>
+			<div class="info__artist"></div>
+			<div class="info__albumName"></div>
+		</div>
+	</div>
+	<script type="text/javascript">
+		const ipc = require('electron').ipcRenderer;
+		let lastArtist, lastAlbumName;
+		ipc.on('track', function(event, message){
+			const title = document.querySelector('.info__title'),
+				artist = document.querySelector('.info__artist'),
+				albumname = document.querySelector('.info__albumName');
+				
+			title.textContent = message.title;
+			artist.textContent = message.artist;
+			albumname.textContent = message.albumName;
+			if(lastAlbumName != message.albumName || lastArtist != message.artist) {
+				const pic = document.querySelector('.picture');
+				pic.style.backgroundImage = 'url("load.svg")';
+				pic.style.backgroundSize = 'auto';
+			}
+			lastArtist = message.artist;
+			lastAlbumName = message.albumName;
+		});
+		ipc.on('picture', function(event, message){
+			const pic = document.querySelector('.picture');
+			if(/^https?:\/\//.test(message)) {
+				pic.style.backgroundImage = 'url("'+message+'")';
+				pic.style.backgroundSize = 'contain';
+			} else {
+				pic.style.backgroundImage = 'url("data:image/png;base64,'+message+'")';
+				pic.style.backgroundSize = 'contain';
+			}
+		});
+		ipc.send('connected');
+	</script>
+</body>
+</html>

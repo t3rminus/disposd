@@ -1,0 +1,28 @@
+{
+  "name": "disposd",
+  "version": "0.1.0",
+  "description": "OSD for Shairport-sync (and others?)",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/t3rminus/disposd.git"
+  },
+  "keywords": [
+    "OSD",
+    "nodejs"
+  ],
+  "author": "Kevin S",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/t3rminus/disposd/issues"
+  },
+  "homepage": "https://github.com/t3rminus/disposd#readme",
+  "dependencies": {
+    "album-art": "^1.0.2",
+    "electron": "^1.4.15",
+    "handlebars": "^4.0.6"
+  }
+}
