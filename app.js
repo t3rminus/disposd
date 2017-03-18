@@ -43,36 +43,43 @@ function createWindow () {
 	});
 }
 
+let lastAlbumName, lastArtist, artworkTimeout;
+const doArtwork = function(picture, artist, albumName) {
+	if(artworkTimeout) {
+		clearTimeout(artworkTimeout);
+	}
+	if(picture) {
+		mainWindow.webContents.send('picture', picture);
+	} else if(artist && albumName && (artist != lastArtist || albumName != lastAlbumName)) {
+		lastArtist = artist; lastAlbumName = albumName;
+		setTimeout(function() {
+			albumArt(artist, albumName, 'mega', function(err, url) {
+				if(!err) {
+					mainWindow.webContents.send('picture', url);
+				}
+			});
+		}, 3000);
+	}
+};
+
 app.on('ready', createWindow);
 app.on('window-all-closed', function() {
 	app.quit();
 });
 
-let lastAlbumName, lastArtist, artworkTimeout;
 reader.on('track', function(data) {
-	console.log('track', data);
 	mainWindow.webContents.send('track', data);
-	
-	if(artworkTimeout) {
-		clearTimeout(artworkTimeout);
-	}
-	setTimeout(function(){
-		if(data.artist && data.albumName && (data.artist != lastArtist || data.albumName != lastAlbumName)) {
-			lastArtist = data.artist; lastAlbumName = data.albumName;
-			albumArt(data.artist, data.albumName, 'mega', function(err, url){
-				if(!err) {
-					mainWindow.webContents.send('picture', url);
-				}
-			});
-		}
-	}, 5000);
+	doArtwork(null, data.artist, data.albumName);
 });
 
-reader.on('picture', function(data) {
-	if(artworkTimeout) {
-		clearTimeout(artworkTimeout);
-	}
-	mainWindow.webContents.send('picture', data);
+reader.on('picture', doArtwork);
+
+reader.on('progress', function(data) {
+	mainWindow.webContents.send('progress', data);
+});
+
+reader.on('state', function(data) {
+	mainWindow.webContents.send('state', data);
 });
 
 ipc.on('connected', function(){

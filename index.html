@@ -31,6 +31,7 @@
 			font-size: 4vw;
 			-webkit-flex: 0 1 auto;
 			flex: 0 1 auto;
+			width: 100%;
 		}
 		.info__title {
 			font-weight: bold;
@@ -38,6 +39,19 @@
 		.info__artist, .info__albumName {
 			font-size: 3vw;
 		}
+		.info__scrubber {
+			margin-top: 4vh;
+			padding: 1px;
+			border: 1px solid #EFEFEF;
+			height: 4vh;
+			width: 100%;
+		}
+		.info__scrubber-bar {
+			height: 100%;
+			width: 1px;
+			background-color: #EFEFEF;
+		}
+		
 		.picture {
 			float: left;
 			margin-right: 1.8vw;
@@ -47,6 +61,11 @@
 			background: url('load.svg') no-repeat 50%;
 			-webkit-flex: 0 0 auto;
 			flex: 0 0 auto;
+			overflow: hidden;
+			border-radius: 0.4vw;
+		}
+		.info__current, .info__remaining {
+			font-size: 2.8vw;
 		}
 	</style>
 </head>
@@ -57,38 +76,105 @@
 			<div class="info__title"></div>
 			<div class="info__artist"></div>
 			<div class="info__albumName"></div>
+			<div class="info__scrubber">
+				<div class="info__scrubber-bar"></div>
+			</div>
+			<div class="info__time">
+				<div class="info__current"></div>
+				<div class="info__remaining"></div>
+			</div>
 		</div>
 	</div>
 	<script type="text/javascript">
+		const $$ = function(e) { return document.querySelector(e) };
 		const ipc = require('electron').ipcRenderer;
-		let lastArtist, lastAlbumName;
+		let lastArtist, lastAlbumName, artTimeout, currentTime, totalTime;
 		ipc.on('track', function(event, message){
-			const title = document.querySelector('.info__title'),
-				artist = document.querySelector('.info__artist'),
-				albumname = document.querySelector('.info__albumName');
+			const title = $$('.info__title'),
+				artist = $$('.info__artist'),
+				albumname = $$('.info__albumName');
 				
 			title.textContent = message.title;
 			artist.textContent = message.artist;
 			albumname.textContent = message.albumName;
 			if(lastAlbumName != message.albumName || lastArtist != message.artist) {
-				const pic = document.querySelector('.picture');
+				const pic = $$('.picture');
 				pic.style.backgroundImage = 'url("load.svg")';
 				pic.style.backgroundSize = 'auto';
+				if(artTimeout) {
+					clearTimeout(artTimeout);
+				}
+				artTimeout = setTimeout(function(){
+					pic.style.backgroundImage = 'url("default.svg")';
+					pic.style.backgroundSize = 'contain';
+				},6000);
 			}
+			currentTime = 0;
+			totalTime = message.time || null;
+			console.log('setTotal',totalTime);
 			lastArtist = message.artist;
 			lastAlbumName = message.albumName;
+			if(totalTime !== null) {
+				$$('.info__scrubber').style.display = 'block';
+			} else {
+				$$('.info__scrubber').style.display = 'none';
+			}
 		});
-		ipc.on('picture', function(event, message){
-			const pic = document.querySelector('.picture');
+		ipc.on('picture', function(event, message) {
+			if(artTimeout) {
+				clearTimeout(artTimeout);
+			}
+			const pic = $$('.picture');
 			if(/^https?:\/\//.test(message)) {
-				pic.style.backgroundImage = 'url("'+message+'")';
-				pic.style.backgroundSize = 'contain';
+				const img = document.createElement('img');
+				img.addEventListener('load', function() {
+					pic.style.backgroundImage = 'url("'+message+'")';
+					pic.style.backgroundSize = 'contain';
+				});
+				img.src = message;
 			} else {
 				pic.style.backgroundImage = 'url("data:image/png;base64,'+message+'")';
 				pic.style.backgroundSize = 'contain';
 			}
 		});
+		ipc.on('progress', function(event, message) {
+			console.log('getTotal',totalTime);
+			if(totalTime !== null) {
+				currentTime = (totalTime * message) / 1000;
+				console.log('progress',message,currentTime);
+			}
+		});
+		
+		ipc.on('state', function(event, message) {
+			if(message === 'play') {
+				currentTime -= 2;
+				play();
+			} else if(message === 'pause') {
+				clearInterval(playInterval);
+			}
+		});
+		
 		ipc.send('connected');
+		
+		let playInterval;
+		function play() {
+			playInterval = setInterval(function(){
+				currentTime += 0.1;
+				if(totalTime !== null) {
+					const scrubberBar = $$('.info__scrubber-bar');
+					scrubberBar.style.width = Math.max(0, (Math.floor((currentTime * 1000 / totalTime) * 10000) / 100)) + '%';
+				}
+				const currentIndicator = $$('.info__current');
+				let curS = Math.floor(currentTime % 60);
+				curS = curS > 9 ? curS : '0' + curS;
+				if(currentTime > 0) {
+					currentIndicator.textContent = Math.floor(currentTime / 60) + ':' + curS;
+				} else {
+					currentIndicator.textContent = '0:00';
+				}
+				
+			}, 100);
+		}
 	</script>
 </body>
 </html>
