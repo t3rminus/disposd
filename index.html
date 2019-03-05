@@ -111,7 +111,6 @@
 			}
 			currentTime = 0;
 			totalTime = message.time || null;
-			console.log('setTotal',totalTime);
 			lastArtist = message.artist;
 			lastAlbumName = message.albumName;
 			if(totalTime !== null) {
@@ -121,33 +120,34 @@
 			}
 		});
 		ipc.on('picture', function(event, message) {
-			if(artTimeout) {
-				clearTimeout(artTimeout);
-			}
-			const pic = $$('.picture');
-			if(/^https?:\/\//.test(message)) {
-				const img = document.createElement('img');
-				img.addEventListener('load', function() {
-					pic.style.backgroundImage = 'url("'+message+'")';
+			if(message) {
+				if(artTimeout) {
+					clearTimeout(artTimeout);
+				}
+				const pic = $$('.picture');
+				if(/^https?:\/\//.test(message)) {
+					const img = document.createElement('img');
+					img.addEventListener('load', function() {
+						pic.style.backgroundImage = 'url("'+message+'")';
+						pic.style.backgroundSize = 'contain';
+					});
+					img.src = message;
+				} else {
+					pic.style.backgroundImage = 'url("data:image/png;base64,'+message+'")';
 					pic.style.backgroundSize = 'contain';
-				});
-				img.src = message;
-			} else {
-				pic.style.backgroundImage = 'url("data:image/png;base64,'+message+'")';
-				pic.style.backgroundSize = 'contain';
+				}
 			}
 		});
 		ipc.on('progress', function(event, message) {
-			console.log('getTotal',totalTime);
 			if(totalTime !== null) {
 				currentTime = (totalTime * message) / 1000;
-				console.log('progress',message,currentTime);
 			}
 		});
 		
 		ipc.on('state', function(event, message) {
 			if(message === 'play') {
 				currentTime -= 2;
+				clearInterval(playInterval);
 				play();
 			} else if(message === 'pause') {
 				clearInterval(playInterval);
@@ -160,15 +160,16 @@
 		function play() {
 			playInterval = setInterval(function(){
 				currentTime += 0.1;
+				const tmpTime = currentTime - 2;
 				if(totalTime !== null) {
 					const scrubberBar = $$('.info__scrubber-bar');
-					scrubberBar.style.width = Math.max(0, (Math.floor((currentTime * 1000 / totalTime) * 10000) / 100)) + '%';
+					scrubberBar.style.width = Math.max(0, (Math.floor((tmpTime * 1000 / totalTime) * 10000) / 100)) + '%';
 				}
 				const currentIndicator = $$('.info__current');
-				let curS = Math.floor(currentTime % 60);
+				let curS = Math.floor(tmpTime % 60);
 				curS = curS > 9 ? curS : '0' + curS;
-				if(currentTime > 0) {
-					currentIndicator.textContent = Math.floor(currentTime / 60) + ':' + curS;
+				if(tmpTime > 0) {
+					currentIndicator.textContent = Math.floor(tmpTime / 60) + ':' + curS;
 				} else {
 					currentIndicator.textContent = '0:00';
 				}

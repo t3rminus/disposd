@@ -21,8 +21,8 @@
   },
   "homepage": "https://github.com/t3rminus/disposd#readme",
   "dependencies": {
-    "album-art": "^1.0.2",
-    "electron": "^1.4.15",
+    "album-art": "^2.0.1",
+    "electron": "^2.0.8",
     "handlebars": "^4.0.6"
   }
 }
